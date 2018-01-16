@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Chatty</string>
+
+    <!-- Strings related to login -->
+    <string name="prompt_email">Email</string>
+    <string name="prompt_password">Password</string>
+    <string name="forgot_password">Forgot password?</string>
+    <string name="sign_up_or_register">Don\'t have an account?</string>
+    <string name="gimmyo_logo">Gimmyo logo</string>
+    <string name="gimmyo_banner">Gimmyo banner</string>
+    <string name="facebook_sign_in">Facebook sign in</string>
+    <string name="googleplus_sign_in">Google plus sign in</string>
+    <string name="twitter_sign_in">Twitter sign in</string>
+
+</resources>
