@@ -1,12 +1,12 @@
 package com.poc.chatty;
 
-import com.parse.GetCallback;
 import com.parse.ParseException;
-import com.parse.ParseObject;
-import com.parse.ParseQuery;
+import com.parse.ParseUser;
+import com.parse.SignUpCallback;
+import com.poc.chatty.models.LoginModel;
+import com.poc.chatty.rest.ApiClient;
+import com.poc.chatty.rest.ApiInterface;
 
-import android.app.ProgressDialog;
-import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -14,259 +14,168 @@ import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * Created by jonregalado on 10/28/17.
  */
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
-
-    private String TAG = "LoginGimmyo";
-    private String userAccount;
-    private String passwordAccount;
-
+public class MainActivity extends AppCompatActivity {
+    
+    private String TAG = "ChattyApp";
+    private Boolean loginModeActive = false;
+    
+    private EditText usernameEditText;
+    private EditText passwordEditText;
+    
+    private Button signupLoginButton;
+    
+    private static final String HEADER_KEY = "Set-Cookie";
+    private static final String XSRF_TOKEN_KEY = "XSRF-TOKEN";
+    
+    public static String XSRF_TOKEN;
+    
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login_page);
-
-        Button signinButton = (Button) findViewById(R.id.loginButton);
-        signinButton.setOnClickListener(this);
+        signupLoginButton = findViewById(R.id.signupLoginButton);
+        
+        signupLoginButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                signupOrLogin();
+            }
+        });
     }
-
-    @Override
-    public void onClick(View view) {
-
-        switch (view.getId()) {
-            case R.id.loginButton:
-                signIn();
+    
+    public void toggleLoginMode(View view) {
+        
+        TextView toggle_loginsignup_mode = findViewById(R.id.toggle_loginsignup_mode);
+        
+        if (loginModeActive) {
+            loginModeActive = false;
+            signupLoginButton.setText("Sign up");
+            toggle_loginsignup_mode.setText("Have an account? Login here");
+            
+        } else {
+            loginModeActive = true;
+            signupLoginButton.setText("Login");
+            toggle_loginsignup_mode.setText("Don't have an account? Signup here");
         }
     }
-
-    private void signIn() {
-
-        if(!validate()){
-            onSignInFailed();
-            return;
-        } else {
-
-            final ProgressDialog progressDialog = new ProgressDialog(MainActivity.this, R.style.AppTheme_Dark_Dialog);
-            progressDialog.setIndeterminate(true);
-            progressDialog.setMessage("Authenticating your account...");
-            progressDialog.show();
-
-            EditText userName = (EditText) findViewById(R.id.input_email);
-            final String _userName = userName.getText().toString();
-
-            EditText password = (EditText) findViewById(R.id.input_password);
-            final String _password = password.getText().toString();
-
-            setUserAccount(_userName, _password);
-
-            new android.os.Handler().postDelayed(
-                    new Runnable() {
-                        @Override
-                        public void run() {
-                            ParseQuery<ParseObject> query = ParseQuery.getQuery("Score");
-
-                            query.getInBackground("lhPdEne3nI", new GetCallback<ParseObject>() {
-                                @Override
-                                public void done(ParseObject object, ParseException e) {
-                                    if (e == null && object != null) {
-
-                                        boolean loggedIn = confirmLoginAccount(object.getString("username"), Integer.toString(object.getInt("score")));
-                                        Log.v(TAG, String.valueOf(loggedIn));
-                                        if(!loggedIn) {
-                                            onSignInFailed();
-                                        }
+    
+    public void signupOrLogin() {
+        
+        usernameEditText = findViewById(R.id.input_email);
+        passwordEditText = findViewById(R.id.input_password);
+        
+        if (loginModeActive) {
+            if (!validate()) {
+                signInFailed();
+                return;
+            } else {
+                ApiInterface apiService = ApiClient.getClient()
+                        .create(ApiInterface.class);
+                
+                LoginModel loginModel = new LoginModel(usernameEditText.getText()
+                        .toString(), passwordEditText.getText()
+                        .toString());
+                
+                Call<LoginModel> call = apiService.userLogin(loginModel);
+                call.enqueue(new Callback<LoginModel>() {
+                    @Override
+                    public void onResponse(Call<LoginModel> call, Response<LoginModel> response) {
+                        Log.d(TAG, "header values: " + response.headers()
+                                .newBuilder());
+                        
+                        List<String> headers = response.headers()
+                                .values(HEADER_KEY);
+                        
+                        for (String header : headers) {
+                            if (header.contains(XSRF_TOKEN_KEY)) {
+                                String[] splitHeader = header.split(";");
+                                
+                                for (String separatedHeader : splitHeader) {
+                                    if (separatedHeader.contains(XSRF_TOKEN_KEY)) {
+                                        XSRF_TOKEN = separatedHeader.substring(11);
                                     }
                                 }
-                            });
-                            progressDialog.dismiss();
+                            }
                         }
-                    }, 1000);
+                        Log.i(TAG, "XSRF TOKEN Final Value " + XSRF_TOKEN);
+                    }
+                    
+                    @Override
+                    public void onFailure(Call<LoginModel> call, Throwable t) {
+                        Log.e(TAG, "onFailure: " + t);
+                    }
+                });
+                Log.i(TAG, "exit retrofit callback");
+            }
+        } else {
+            if (!validate()) {
+                signInFailed();
+                return;
+            } else {
+                ParseUser user = new ParseUser();
+                
+                user.setUsername(usernameEditText.getText()
+                        .toString());
+                user.setPassword(passwordEditText.getText()
+                        .toString());
+                
+                user.signUpInBackground(new SignUpCallback() {
+                    @Override
+                    public void done(ParseException e) {
+                        if (e == null) {
+                            Log.i(TAG, "user signed up");
+                        } else {
+                            Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT)
+                                    .show();
+                        }
+                    }
+                });
+            }
         }
     }
-
-    public void setUserAccount(String userAccount, String passwordAccount){
-        this.userAccount = userAccount;
-        this.passwordAccount = passwordAccount;
-    }
-
-    private boolean confirmLoginAccount(String username, String password) {
-        if (username.equals(userAccount) && password.equals(passwordAccount)) {
-            Log.v(TAG, "success logging in");
-            Intent successLogin = new Intent(MainActivity.this, UserListActivity.class);
-            startActivity(successLogin);
-            finish();
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-
-    private void onSignInFailed() {
-        Toast.makeText(this, "Login failed", Toast.LENGTH_SHORT).show();
-    }
-
+    
     private boolean validate() {
         boolean valid = true;
-
-        EditText userName = (EditText) findViewById(R.id.input_email);
-        String _userName = userName.getText().toString();
-
-        EditText password = (EditText) findViewById(R.id.input_password);
-        String _password = password.getText().toString();
-
-        if (_userName.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(_userName).matches()){
+        
+        EditText userName = findViewById(R.id.input_email);
+        String _userName = userName.getText()
+                .toString();
+        
+        EditText password = findViewById(R.id.input_password);
+        String _password = password.getText()
+                .toString();
+        
+        if (_userName.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(_userName)
+                .matches()) {
             userName.setError("enter a valid email address");
             valid = false;
         } else {
             userName.setError(null);
         }
-
-        if (_password.isEmpty() || _password.length() < 4 || password.length() > 15) {
-            password.setError("between 4 and 15 alphanumeric characters required");
+        
+        if (_password.isEmpty() || _password.length() < 4 || password.length() > 30) {
+            password.setError("between 4 and 30 alphanumeric characters required");
             valid = false;
         } else {
             password.setError(null);
         }
         return valid;
     }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-
+    
+    private void signInFailed() {
+        Toast.makeText(this, "Login failed", Toast.LENGTH_SHORT)
+                .show();
     }
 }
-
-//
-//import android.app.ProgressDialog;
-//import android.content.Intent;
-//import android.support.v7.app.AppCompatActivity;
-//import android.os.Bundle;
-//import android.util.Log;
-//import android.util.Patterns;
-//import android.view.View;
-//import android.widget.Button;
-//import android.widget.EditText;
-//import android.widget.Toast;
-//
-//import com.parse.GetCallback;
-//import com.parse.ParseException;
-//import com.parse.ParseObject;
-//import com.parse.ParseQuery;
-//
-//public class MainActivity extends AppCompatActivity {
-//
-//    private String TAG = "Chatty";
-//    private String userAccount;
-//    private String passwordAccount;
-//
-//    @Override
-//    protected void onCreate(Bundle savedInstanceState) {
-//        super.onCreate(savedInstanceState);
-//        setContentView(R.layout.activity_login_page);
-//
-//        Button loginButton = findViewById(R.id.loginButton);
-//        loginButton.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                signIn();
-//            }
-//        });
-//    }
-//
-//    private void signIn() {
-//
-//        if(!validCredentials()) {
-//            onSignInFailed();
-//            return;
-//        } else {
-//
-//            final ProgressDialog progressDialog = new ProgressDialog(MainActivity.this, R.style.AppTheme_Dark_Dialog);
-//            progressDialog.setIndeterminate(true);
-//            progressDialog.setMessage("Authenticating your account...");
-//            progressDialog.show();
-//
-//            EditText userName = (EditText) findViewById(R.id.input_email);
-//            final String _userName = userName.getText().toString();
-//
-//            EditText password = (EditText) findViewById(R.id.input_password);
-//            final String _password = password.getText().toString();
-//
-//            setUserAccount(_userName, _password);
-//
-//            new android.os.Handler().postDelayed(
-//                    new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            ParseQuery<ParseObject> query = ParseQuery.getQuery("Score");
-//
-//                            query.getInBackground("lhPdEne3nI", new GetCallback<ParseObject>() {
-//                                @Override
-//                                public void done(ParseObject object, ParseException e) {
-//                                    if (e == null && object != null) {
-//
-//                                        boolean loggedIn = confirmLoginAccount(object.getString("username"), Integer.toString(object.getInt("score")));
-//                                        if(!loggedIn) {
-//                                            onSignInFailed();
-//                                        }
-//                                    }
-//                                }
-//                            });
-//                            progressDialog.dismiss();
-//                        }
-//                    }, 1000);
-//        }
-//    }
-//
-//    public void setUserAccount(String userAccount, String passwordAccount){
-//        this.userAccount = userAccount;
-//        this.passwordAccount = passwordAccount;
-//    }
-//
-//    private void onSignInFailed() {
-//        Toast.makeText(this, "Login failed", Toast.LENGTH_SHORT).show();
-//    }
-//
-//    private boolean confirmLoginAccount(String username, String password) {
-//        if (username.equals(userAccount) && password.equals(passwordAccount)) {
-//            Log.v(TAG, "success logging in");
-//            Intent successLogin = new Intent(MainActivity.this, UserListActivity.class);
-//            startActivity(successLogin);
-//            finish();
-//            return true;
-//        }
-//        else {
-//            return false;
-//        }
-//    }
-//
-//    private boolean validCredentials() {
-//        boolean credentialsState = true;
-//
-//        EditText userName = findViewById(R.id.input_email);
-//        String _userName = userName.getText().toString();
-//
-//        EditText password = findViewById(R.id.input_password);
-//        String _password = password.getText().toString();
-//
-//        if (_userName.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(_userName).matches()){
-//            userName.setError("enter a valid email address");
-//            credentialsState = false;
-//        } else {
-//            userName.setError(null);
-//        }
-//
-//        if (_password.isEmpty() || _password.length() < 4 || password.length() > 15) {
-//            password.setError("between 4 and 15 alphanumeric characters required");
-//            credentialsState = false;
-//        } else {
-//            password.setError(null);
-//        }
-//        return credentialsState;
-//    }
-//}
