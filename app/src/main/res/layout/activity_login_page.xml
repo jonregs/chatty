@@ -9,6 +9,7 @@
 
     <EditText
         android:id="@+id/input_email"
+        android:text="regsjondev@gmail.com"
         android:layout_width="320dp"
         android:layout_height="50dp"
         android:layout_marginEnd="8dp"
@@ -25,6 +26,7 @@
 
     <EditText
         android:id="@+id/input_password"
+        android:text="DEAR_10000-hours!"
         android:layout_width="320dp"
         android:layout_height="45dp"
         android:layout_marginEnd="24dp"
@@ -40,16 +42,29 @@
         app:layout_constraintTop_toBottomOf="@+id/input_email"/>
 
     <Button
-        android:id="@+id/loginButton"
+        android:id="@+id/signupLoginButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="50dp"
-        android:text="Login"
+        android:text="Sign up"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@id/input_password"
         tools:layout_editor_absoluteX="148dp"
         tools:layout_editor_absoluteY="319dp"/>
+
+    <TextView
+        android:id="@+id/toggle_loginsignup_mode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:onClick="toggleLoginMode"
+        android:text="Don't have an account? Signup here"
+        android:textSize="15dp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"/>
 
 
 </android.support.constraint.ConstraintLayout>
