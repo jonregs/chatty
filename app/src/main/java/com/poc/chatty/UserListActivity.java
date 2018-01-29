@@ -1,7 +1,5 @@
 package com.poc.chatty;
 
-import com.parse.ParseQuery;
-import com.parse.ParseUser;
 import com.poc.chatty.models.Result;
 import com.poc.chatty.models.UserListResponse;
 import com.poc.chatty.rest.ApiClient;
@@ -17,12 +15,16 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+
+import static com.poc.chatty.MainActivity.XSRF_TOKEN;
 
 /**
  * Created by Jon on 1/14/2018.
@@ -47,23 +49,19 @@ public class UserListActivity extends AppCompatActivity {
         userListView = findViewById(R.id.userListView);
         
         ApiInterface apiService = ApiClient.getClient().create(ApiInterface.class);
-    
-        Call<UserListResponse> call = apiService.getUserList();
-        call.enqueue(new Callback<UserListResponse>() {
-            @Override
-            public void onResponse(Call<UserListResponse> call, Response<UserListResponse> response) {
-                Log.e(TAG, "onResponse: " + response.body().getResult() );
-                List<Result> userListResponses = response.body().getResult();
-                updateAdapter(userListResponses);
-            }
-    
-            @Override
-            public void onFailure(Call<UserListResponse> call, Throwable t) {
-                Log.e(TAG, "onFailure: " + t);
-            }
-        });
         
-        userListView.setAdapter(arrayAdapter);
+        Call<ResponseBody> call = apiService.getChatRoomList(XSRF_TOKEN);
+        call.enqueue(new Callback<ResponseBody>() {
+                         @Override
+                         public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                             Log.i(TAG, "onResponse: " + response);
+                         }
+    
+                         @Override
+                         public void onFailure(Call<ResponseBody> call, Throwable t) {
+        
+                         }
+                     });
         
         userListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override

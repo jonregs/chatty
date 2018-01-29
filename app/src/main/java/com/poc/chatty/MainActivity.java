@@ -7,6 +7,7 @@ import com.poc.chatty.models.LoginModel;
 import com.poc.chatty.rest.ApiClient;
 import com.poc.chatty.rest.ApiInterface;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -110,6 +111,7 @@ public class MainActivity extends AppCompatActivity {
                             }
                         }
                         Log.i(TAG, "XSRF TOKEN Final Value " + XSRF_TOKEN);
+                        proceedToHomeActivity();
                     }
                     
                     @Override
@@ -177,5 +179,11 @@ public class MainActivity extends AppCompatActivity {
     private void signInFailed() {
         Toast.makeText(this, "Login failed", Toast.LENGTH_SHORT)
                 .show();
+    }
+    
+    private void proceedToHomeActivity () {
+        Intent intent = new Intent(this, UserListActivity.class);
+        startActivity(intent);
+        this.finish();
     }
 }
